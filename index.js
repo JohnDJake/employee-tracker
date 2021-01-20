@@ -22,5 +22,24 @@ connection.connect(err => {
 
 // Display the main menu
 function mainMenu() {
-    // TODO display the main menu
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to do?",
+        choices: [
+            { name: "View all employees", value: viewAllEmployees },
+            { name: "Quit", value: quit }]
+    }).then(({action}) => action());
+}
+
+function viewAllEmployees() {
+    connection.query("SELECT * FROM employees", (err, res) => {
+        if (err) console.error(err);
+        else console.table(res);
+        mainMenu();
+    });
+}
+
+function quit() {
+    connection.end();
 }
