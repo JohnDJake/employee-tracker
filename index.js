@@ -27,11 +27,33 @@ function mainMenu() {
         name: "action",
         message: "What would you like to do?",
         choices: [
+            { name: "Add a department", value: addDepartment },
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
             { name: "Quit", value: quit }]
     }).then(({ action }) => action());
+}
+
+function addDepartment() {
+    connection.query("SELECT name FROM departments", (err, res) => {
+        if (err) console.error(err);
+        else {
+            const departments = res.map(row => row.name);
+            inquirer.prompt({
+                type: "input",
+                name: "name",
+                message: "What is the new department's name?",
+                validate: input => departments.includes(input) ? "That department already exists" : true
+            }).then(ans => {
+                connection.query("INSERT INTO departments SET ?", ans, (err, res) => {
+                    if (err) console.error(err);
+                    else console.log("The department was successfully added!");
+                    mainMenu();
+                });
+            });
+        }
+    });
 }
 
 function viewAllDepartments() {
