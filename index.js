@@ -33,11 +33,14 @@ function mainMenu() {
 }
 
 function viewAllEmployees() {
-    connection.query("SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name', roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager FROM employees LEFT JOIN roles ON employees.role_id=roles.role_id LEFT JOIN departments ON roles.department_id=departments.department_id LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id", (err, res) => {
-        if (err) console.error(err);
-        else console.table(res);
-        mainMenu();
-    });
+    connection.query(
+        "SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name', roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager FROM employees LEFT JOIN roles ON employees.role_id=roles.role_id LEFT JOIN departments ON roles.department_id=departments.department_id LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id",
+        (err, res) => {
+            if (err) console.error(err);
+            else console.table(res);
+            mainMenu();
+        }
+    );
 }
 
 function quit() {
