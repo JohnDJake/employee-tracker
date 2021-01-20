@@ -28,6 +28,7 @@ function mainMenu() {
         message: "What would you like to do?",
         choices: [
             { name: "View all departments", value: viewAllDepartments },
+            { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
             { name: "Quit", value: quit }]
     }).then(({ action }) => action());
@@ -39,6 +40,17 @@ function viewAllDepartments() {
         else console.table(res);
         mainMenu();
     });
+}
+
+function viewAllRoles() {
+    connection.query(
+        "SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department FROM roles LEFT JOIN departments ON roles.department_id=departments.department_id",
+        (err, res) => {
+            if (err) console.error(err);
+            else console.table(res);
+            mainMenu();
+        }
+    );
 }
 
 function viewAllEmployees() {
