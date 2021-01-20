@@ -25,41 +25,45 @@ connection.connect(err => {
 });
 
 // Display the main menu
-async function mainMenu() {
-    try {
-        (await inquirer.prompt({
-            type: "list",
-            name: "action",
-            message: "What would you like to do?",
-            choices: [
-                { name: "Add a department", value: addDepartment },
-                { name: "View all departments", value: viewAllDepartments },
-                { name: "View all roles", value: viewAllRoles },
-                { name: "View all employees", value: viewAllEmployees },
-                { name: "Quit", value: quit }
-            ]
-        })).action();
-    } catch (err) {
-        console.error(err);
-    }
+function mainMenu() {
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to do?",
+        choices: [
+            { name: "Add a department", value: addDepartment },
+            { name: "View all departments", value: viewAllDepartments },
+            { name: "View all roles", value: viewAllRoles },
+            { name: "View all employees", value: viewAllEmployees },
+            { name: "Quit", value: quit }
+        ]
+    }).then(({ action }) => action());
 }
 
 async function addDepartment() {
-    const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
-    const ans = inquirer.prompt({
-        type: "input",
-        name: "name",
-        message: "What is the new department's name?",
-        filter: input => input.trim(),
-        validate: input => departments.includes(input) ? "That department already exists" : true
-    });
-    await connection.queryPromise("INSERT INTO departments SET ?", await ans);
-    console.log("The department was successfully added!");
+    try {
+        const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
+        const ans = inquirer.prompt({
+            type: "input",
+            name: "name",
+            message: "What is the new department's name?",
+            filter: input => input.trim(),
+            validate: input => departments.includes(input) ? "That department already exists" : true
+        });
+        await connection.queryPromise("INSERT INTO departments SET ?", await ans);
+        console.log("The department was successfully added!");
+    } catch (err) {
+        console.error(err);
+    }
     mainMenu();
 }
 
 async function viewAllDepartments() {
-    console.table(await connection.queryPromise("SELECT * FROM departments"));
+    try {
+        console.table(await connection.queryPromise("SELECT * FROM departments"));
+    } catch (err) {
+        console.error(err);
+    }
     mainMenu();
 }
 
