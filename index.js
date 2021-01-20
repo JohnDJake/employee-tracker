@@ -4,6 +4,8 @@ require("dotenv-expand")(require("dotenv").config());
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
+const {promisify} = require("util");
+const { get } = require("http");
 
 // Create database connection, variables should be configured in .env file
 const connection = mysql.createConnection({
@@ -17,7 +19,10 @@ const connection = mysql.createConnection({
 // Connect to database and call the main menu function
 connection.connect(err => {
     if (err) console.error(err);
-    else mainMenu();
+    else {
+        connection.queryPromise = promisify(connection.query);
+        mainMenu();
+    }
 });
 
 // Display the main menu
@@ -34,12 +39,17 @@ function mainMenu() {
     }).then(({ action }) => action());
 }
 
-function viewAllDepartments() {
-    connection.query("SELECT * FROM departments", (err, res) => {
-        if (err) console.error(err);
-        else console.table(res);
-        mainMenu();
-    });
+async function viewAllDepartments() {
+    try {
+        console.table(await getAllDepartments());
+    } catch (err) {
+        console.error(err);
+    }
+    mainMenu();
+}
+
+function getAllDepartments() {
+    return connection.queryPromise("SELECT * FROM departments");
 }
 
 function viewAllRoles() {
