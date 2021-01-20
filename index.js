@@ -59,38 +59,28 @@ async function addDepartment() {
 }
 
 async function viewAllDepartments() {
-    try {
-        console.table(await connection.queryPromise("SELECT * FROM departments"));
-    } catch (err) {
-        console.error(err);
-    }
+    try { console.table(await connection.queryPromise("SELECT * FROM departments")); } catch (err) { console.error(err); }
     mainMenu();
 }
 
-function viewAllRoles() {
-    connection.query(`
-        SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department
-        FROM roles LEFT JOIN departments ON roles.department_id=departments.department_id`,
-        (err, res) => {
-            if (err) console.error(err);
-            else console.table(res);
-            mainMenu();
-        }
-    );
+async function viewAllRoles() {
+    try {
+        console.table(await connection.queryPromise(`
+            SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department
+            FROM roles LEFT JOIN departments ON roles.department_id=departments.department_id`))
+    } catch (err) { console.error(err); }
+    mainMenu();
 }
 
-function viewAllEmployees() {
-    connection.query(`
-        SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
-        roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
-        FROM employees LEFT JOIN roles ON employees.role_id=roles.role_id LEFT JOIN departments ON roles.department_id=departments.department_id
-        LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id`,
-        (err, res) => {
-            if (err) console.error(err);
-            else console.table(res);
-            mainMenu();
-        }
-    );
+async function viewAllEmployees() {
+    try {
+        console.table(await connection.queryPromise(`
+            SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
+            roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
+            FROM employees LEFT JOIN roles ON employees.role_id=roles.role_id LEFT JOIN departments ON roles.department_id=departments.department_id
+            LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id`));
+    } catch (err) { console.error(err); }
+    mainMenu();
 }
 
 function quit() {
