@@ -13,3 +13,14 @@ const connection = mysql.createConnection({
     password: process.env.MYSQL_PASSWORD || "password",
     database: "employee_tracker_db"
 });
+
+// Connect to database and call the main menu function
+connection.connect(err => {
+    if (err) console.error(err);
+    else mainMenu();
+});
+
+// Display the main menu
+function mainMenu() {
+    // TODO display the main menu
+}
