@@ -4,8 +4,7 @@ require("dotenv-expand")(require("dotenv").config());
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const cTable = require("console.table");
-const {promisify} = require("util");
-const { get } = require("http");
+const { promisify } = require("util");
 
 // Create database connection, variables should be configured in .env file
 const connection = mysql.createConnection({
@@ -36,29 +35,27 @@ function mainMenu() {
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
-            { name: "Quit", value: quit }]
+            { name: "Quit", value: quit }
+        ]
     }).then(({ action }) => action());
 }
 
-function addDepartment() {
-    connection.query("SELECT name FROM departments", (err, res) => {
-        if (err) console.error(err);
-        else {
-            const departments = res.map(row => row.name);
-            inquirer.prompt({
-                type: "input",
-                name: "name",
-                message: "What is the new department's name?",
-                validate: input => departments.includes(input) ? "That department already exists" : true
-            }).then(ans => {
-                connection.query("INSERT INTO departments SET ?", ans, (err, res) => {
-                    if (err) console.error(err);
-                    else console.log("The department was successfully added!");
-                    mainMenu();
-                });
-            });
-        }
-    });
+async function addDepartment() {
+    try {
+        const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
+        const ans = inquirer.prompt({
+            type: "input",
+            name: "name",
+            message: "What is the new department's name?",
+            filter: input => input.trim(),
+            validate: input => departments.includes(input) ? "That department already exists" : true
+        });
+        await connection.queryPromise("INSERT INTO departments SET ?", await ans);
+        console.log("The department was successfully added!");
+    } catch (err) {
+        console.error(err);
+    }
+    mainMenu();
 }
 
 async function viewAllDepartments() {
