@@ -27,9 +27,18 @@ function mainMenu() {
         name: "action",
         message: "What would you like to do?",
         choices: [
+            { name: "View all departments", value: viewAllDepartments },
             { name: "View all employees", value: viewAllEmployees },
             { name: "Quit", value: quit }]
     }).then(({ action }) => action());
+}
+
+function viewAllDepartments() {
+    connection.query("SELECT * FROM departments", (err, res) => {
+        if (err) console.error(err);
+        else console.table(res);
+        mainMenu();
+    });
 }
 
 function viewAllEmployees() {
