@@ -94,7 +94,8 @@ async function viewAllRoles() {
     try {
         console.table(await connection.queryPromise(`
             SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department
-            FROM roles JOIN departments ON roles.department_id=departments.department_id`))
+            FROM roles JOIN departments ON roles.department_id=departments.department_id
+            ORDER BY departments.department_id`));
     } catch (err) { console.error(err); }
     mainMenu();
 }
