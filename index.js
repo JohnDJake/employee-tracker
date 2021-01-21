@@ -100,41 +100,22 @@ async function addRole() {
 // Add an employee
 async function addEmployee() {
     try {
-        const newEmployee = await inquirer.prompt([{
-            // Retrieve the departments from the database and have the user choose one
-            type: "list",
-            name: "department_id",
-            message: "Choose a department to add an employee to",
-            choices: (await connection.queryPromise("SELECT * FROM departments")).map(dept => ({ name: dept.name, value: dept.department_id }))
-        }, {
-            // Retrieve the list of roles in the selected department and have the user choose one
-            type: "list",
-            name: "role_id",
-            message: "Choose a role in that department to add an employee to",
-            // If the department doesn't have any roles, return 0 as the role_id
-            choices: async function (answers) {
-                const choices = (await connection.queryPromise("SELECT role_id, title FROM roles WHERE ?", answers)).map(role => ({ name: role.title, value: role.role_id }));
-                return choices.length > 0 ? choices : [{ name: "Please add a role to this department before adding an employee.\n  Press enter to go back to the main menu.", value: 0, short: "Create a role" }];
-            }
-        }, {
-            // Ask for the new employee's first name
-            type: "input",
-            name: "first_name",
-            message: "What is the new employee's first name?",
-            // Skip this question if role_id is 0 because that means the user needs to create a role first
-            when: ({ role_id }) => role_id
-        }, {
-            // Ask for the new employee's last name
-            type: "input",
-            name: "last_name",
-            message: "What is the new employee's last name?",
-            // Skip this question if role_id is 0 because that means the user needs to create a role first
-            when: ({ role_id }) => role_id
-        }]);
-        // Only add the employee to the database if there was a role in the department to add them to
-        if (newEmployee.role_id) {
-            // Add the new employee to the database, using an object with all of the properties of newEmployee except department_id because the remaining keys match the table columns
-            await connection.queryPromise("INSERT INTO employees SET ?", (({ department_id, ...newEmployee }) => newEmployee)(newEmployee));
+        const { role: { role_id, title } } = await chooseRole("add an employee to");
+        // Don't add an employee if no role was selected
+        if (role_id) {
+            const newEmployee = await inquirer.prompt([{
+                // Ask for the new employee's first name
+                type: "input",
+                name: "first_name",
+                message: `What is the new ${title}'s first name?`
+            }, {
+                // Ask for the new employee's last name
+                type: "input",
+                name: "last_name",
+                message: ({first_name}) => `What is ${first_name}'s last name?`
+            }]);
+            // Add the new employee to the database
+            await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
             console.log("The employee was successfully added!");
         }
     } catch (err) { console.error(err); }
@@ -216,7 +197,7 @@ async function chooseRole(actionClause) {
             // If the department doesn't have any roles, return false
             choices: async function () {
                 const choices = (await connection.queryPromise("SELECT role_id, title FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
-                return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles or employees.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
+                return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
             }
         });
     } catch (err) { console.error(err); }
@@ -238,7 +219,7 @@ async function chooseEmployee(actionClause, action) {
                     .map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee }));
                 return choices.length > 0 ? choices : [{ name: "This role doesn't have any employees.\n  Press enter to go back to the main menu.", value: false, short: "No Employees" }];
             },
-            // Skip this question if role_id is 0 because that means there aren't any roles or employees in the selected department
+            // Skip this question if role_id is false because that means there aren't any roles or employees in the selected department
             when: role_id
         });
     } catch (err) { console.error(err); }
