@@ -111,6 +111,7 @@ async function addEmployee() {
                 name: "last_name",
                 message: ({ first_name }) => `What is ${first_name}'s last name?`
             }, {
+                // Select a manager for that employee in the same department, or null for no manager
                 type: "list",
                 name: "manager_id",
                 message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
@@ -211,7 +212,7 @@ async function chooseRole(actionClause, department_id_param) {
 async function chooseEmployee(actionClause, role_id_param) {
     try {
         // Choose a department and a role
-        const role_id = role_id_param || (await chooseRole(actionClause)).role.ro;
+        const role_id = role_id_param || (await chooseRole(actionClause)).role.role_id;
         return inquirer.prompt({
             // Retrieve the list of employees working in the selected role and have the user choose one
             type: "list",
