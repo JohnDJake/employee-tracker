@@ -49,7 +49,7 @@ async function addDepartment() {
         // Generate an array of department name strings to prevent making duplicate departments
         const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
         // Get the new department name
-        const newDepartment = inquirer.prompt({
+        const newDepartment = await inquirer.prompt({
             type: "input",
             name: "name",
             message: "What is the new department's name?",
@@ -57,7 +57,7 @@ async function addDepartment() {
             validate: input => departments.includes(input) ? "That department already exists" : true
         });
         // Add the new department to the database
-        await connection.queryPromise("INSERT INTO departments SET ?", await newDepartment);
+        await connection.queryPromise("INSERT INTO departments SET ?", newDepartment);
         console.log("The department was successfully added!");
     } catch (err) { console.error(err); }
     mainMenu();
