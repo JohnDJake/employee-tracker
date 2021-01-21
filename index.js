@@ -157,14 +157,15 @@ async function viewAllRoles() {
     mainMenu();
 }
 
-// View all employees
+// View all employees, sorted by department then by role
 async function viewAllEmployees() {
     try {
         console.table(await connection.queryPromise(`
             SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
             roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
-            LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id`));
+            LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
+            ORDER BY departments.department_id, roles.role_id`));
     } catch (err) { console.error(err); }
     mainMenu();
 }
