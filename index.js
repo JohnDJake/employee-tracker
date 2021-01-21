@@ -66,21 +66,17 @@ async function addDepartment() {
 // Add a role to a department
 async function addRole() {
     try {
-        const newRole = inquirer.prompt([{
-            // Retrieve the departments from the database and have the user choose one
-            type: "list",
-            name: "department_id",
-            message: "Choose a department to add a role to",
-            choices: (await connection.queryPromise("SELECT * FROM departments")).map(dept => ({ name: dept.name, value: dept.department_id }))
-        }, {
+        // Choose a department
+        const { department: { department_id, name } } = await chooseDepartment("add a role to");
+        const newRole = await inquirer.prompt([{
             // Have the user set a name for the new role
             type: "input",
             name: "title",
-            message: "What is the title for this new role?",
+            message: `What is the title for this new ${name} role?`,
             filter: input => input.trim(),
             // Retrieve a list of roles in the selected department and make sure the title input doesn't already exist
-            validate: async function (input, answers) {
-                return (await connection.queryPromise("SELECT title FROM roles WHERE ?", answers)).map(row => row.title).includes(input) ? "That role already exists" : true;
+            validate: async function (input) {
+                return (await connection.queryPromise("SELECT title FROM roles WHERE department_id=?", department_id)).map(row => row.title).includes(input) ? "That role already exists" : true;
             }
         }, {
             // Ask the user what the salary is in this role
@@ -91,7 +87,7 @@ async function addRole() {
             validate: input => input === "" || isNaN(input) ? "Please enter the salary as a number" : true
         }]);
         // Add the new role to the database
-        await connection.queryPromise("INSERT INTO roles SET ?", await newRole);
+        await connection.queryPromise("INSERT INTO roles SET ?", { ...newRole, department_id: department_id });
         console.log("The role was successfully added!");
     } catch (err) { console.error(err); }
     mainMenu();
@@ -100,6 +96,7 @@ async function addRole() {
 // Add an employee
 async function addEmployee() {
     try {
+        // Choose a department and a role
         const { role: { role_id, title } } = await chooseRole("add an employee to");
         // Don't add an employee if no role was selected
         if (role_id) {
@@ -112,7 +109,7 @@ async function addEmployee() {
                 // Ask for the new employee's last name
                 type: "input",
                 name: "last_name",
-                message: ({first_name}) => `What is ${first_name}'s last name?`
+                message: ({ first_name }) => `What is ${first_name}'s last name?`
             }]);
             // Add the new employee to the database
             await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
@@ -188,6 +185,7 @@ async function chooseDepartment(actionClause) {
 // Choose a role by department
 async function chooseRole(actionClause) {
     try {
+        // Choose a department
         const { department: { department_id } } = (await chooseDepartment(actionClause));
         return inquirer.prompt({
             // Retrieve the roles in the selected department and have the user choose one
@@ -207,6 +205,7 @@ async function chooseRole(actionClause) {
 // Returns an employee to be used by modify and delete functions
 async function chooseEmployee(actionClause, action) {
     try {
+        // Choose a department and a role
         const { role: { role_id } } = (await chooseRole(actionClause));
         return inquirer.prompt({
             // Retrieve the list of employees working in the selected role and have the user choose one
