@@ -97,7 +97,7 @@ async function addRole() {
 async function addEmployee() {
     try {
         // Choose a department and a role
-        const { role: { role_id, title } } = await chooseRole("add an employee to");
+        const { role: { role_id, title, department_id } } = await chooseRole("add an employee to");
         // Don't add an employee if no role was selected
         if (role_id) {
             const newEmployee = await inquirer.prompt([{
@@ -110,6 +110,19 @@ async function addEmployee() {
                 type: "input",
                 name: "last_name",
                 message: ({ first_name }) => `What is ${first_name}'s last name?`
+            }, {
+                type: "list",
+                name: "manager_id",
+                message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
+                choices: async function () {
+                    const choices = (await connection.queryPromise(`
+                        SELECT employees.first_name, employees.last_name, employees.employee_id
+                        FROM employees JOIN roles on employees.role_id=roles.role_id
+                        WHERE roles.department_id=?`,
+                        department_id)).map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.employee_id }));
+                    choices.push({ name: "None", value: null });
+                    return choices;
+                }
             }]);
             // Add the new employee to the database
             await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
@@ -194,7 +207,7 @@ async function chooseRole(actionClause) {
             message: `Choose a role in that department to ${actionClause}`,
             // If the department doesn't have any roles, return false
             choices: async function () {
-                const choices = (await connection.queryPromise("SELECT role_id, title FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
+                const choices = (await connection.queryPromise("SELECT role_id, title, department_id FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
                 return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
             }
         });
