@@ -32,6 +32,7 @@ function mainMenu() {
         message: "What would you like to do?",
         choices: [
             { name: "Add a department", value: addDepartment },
+            { name: "Add a role", value: addRole },
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
@@ -43,15 +44,43 @@ function mainMenu() {
 async function addDepartment() {
     try {
         const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
-        const ans = inquirer.prompt({
+        const newDepartment = inquirer.prompt({
             type: "input",
             name: "name",
             message: "What is the new department's name?",
             filter: input => input.trim(),
             validate: input => departments.includes(input) ? "That department already exists" : true
         });
-        await connection.queryPromise("INSERT INTO departments SET ?", await ans);
+        await connection.queryPromise("INSERT INTO departments SET ?", await newDepartment);
         console.log("The department was successfully added!");
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+async function addRole() {
+    try {
+        const newRole = inquirer.prompt([{
+            type: "list",
+            name: "department_id",
+            message: "Choose a department to add a role to",
+            choices: (await connection.queryPromise("SELECT * FROM departments")).map(dept => ({ name: dept.name, value: dept.department_id }))
+        }, {
+            type: "input",
+            name: "title",
+            message: "What is the title for this new role?",
+            filter: input => input.trim(),
+            validate: async function (input, answers) {
+                return (await connection.queryPromise("SELECT title FROM roles WHERE ?", answers)).map(row => row.title).includes(input) ? "That role already exists" : true;
+            }
+        }, {
+            type: "number",
+            name: "salary",
+            message: ({ title }) => `What is the salary for ${title} employees?`,
+            filter: input => isNaN(input) ? "" : input,
+            validate: input => input === "" || isNaN(input) ? "Please enter the salary as a number" : true
+        }]);
+        await connection.queryPromise("INSERT INTO roles SET ?", await newRole);
+        console.log("The role was succesfully added!");
     } catch (err) { console.error(err); }
     mainMenu();
 }
