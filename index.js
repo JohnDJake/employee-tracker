@@ -37,6 +37,7 @@ function mainMenu() {
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
+            { name: "Update an employee's role", value: updateEmployeeRole },
             { name: "Quit", value: quit }
         ]
     }).then(({ action }) => action());
@@ -99,7 +100,7 @@ async function addRole() {
 // Add an employee
 async function addEmployee() {
     try {
-        const newEmployee = inquirer.prompt([{
+        const newEmployee = await inquirer.prompt([{
             // Retrieve the departments from the database and have the user choose one
             type: "list",
             name: "department_id",
@@ -131,9 +132,9 @@ async function addEmployee() {
             when: ({ role_id }) => role_id
         }]);
         // Only add the employee to the database if there was a role in the department to add them to
-        if ((await newEmployee).role_id) {
+        if (newEmployee.role_id) {
             // Add the new employee to the database, using an object with all of the properties of newEmployee except department_id because the remaining keys match the table columns
-            await connection.queryPromise("INSERT INTO employees SET ?", (({ department_id, ...newEmployee }) => newEmployee)(await newEmployee));
+            await connection.queryPromise("INSERT INTO employees SET ?", (({ department_id, ...newEmployee }) => newEmployee)(newEmployee));
             console.log("The employee was successfully added!");
         }
     } catch (err) { console.error(err); }
@@ -168,6 +169,71 @@ async function viewAllEmployees() {
             ORDER BY departments.department_id, roles.role_id`));
     } catch (err) { console.error(err); }
     mainMenu();
+}
+
+// Update employee role
+async function updateEmployeeRole() {
+    try {
+        // Choose an employee to update
+        const employee = await chooseEmployee("update an employee in", "update");
+        // Only keep going if an employee was selected
+        if (employee) {
+            // Select a role to move the employee to
+            const newRole = await chooseRole(`move ${employee.first_name} ${employee.last_name} to`);
+            // Only keep going if a new role was selected
+            if (newRole) {
+                // Update the employee in the database
+                await connection.queryPromise("UPDATE employees SET role_id=? WHERE employee_id=?", [newRole.role_id, employee.employee_id]);
+                console.log(`Successfully moved ${employee.first_name} ${employee.last_name} to ${newRole.title}`);
+            }
+        }
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// Choose a role by department
+async function chooseRole(actionClause) {
+    try {
+        return (await inquirer.prompt([{
+            // Retrieve the departments from the database and have the user choose one
+            type: "list",
+            name: "department_id",
+            message: `Choose a department to ${actionClause}`,
+            choices: (await connection.queryPromise("SELECT * FROM departments")).map(dept => ({ name: dept.name, value: dept.department_id }))
+        }, {
+            // Retrieve the roles in the selected department and have the user choose one
+            type: "list",
+            name: "role",
+            message: `Choose a role in that department to ${actionClause}`,
+            // If the department doesn't have any roles, return false
+            choices: async function (answers) {
+                const choices = (await connection.queryPromise("SELECT role_id, title FROM roles WHERE ?", answers)).map(role => ({ name: role.title, value: role }));
+                return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles or employees.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
+            }
+        }])).role;
+    } catch (err) { console.error(err); }
+}
+
+// Choose an employee by department and role
+// Returns an employee to be used by modify and delete functions
+async function chooseEmployee(actionClause, action) {
+    try {
+        const roleID = (await chooseRole(actionClause)).role_id;
+        return (await inquirer.prompt({
+            // Retrieve the list of employees working in the selected role and have the user choose one
+            type: "list",
+            name: "employee",
+            message: `Choose an employee in that role to ${action}`,
+            // If the role doesn't have any employees, return false
+            choices: async function () {
+                const choices = (await connection.queryPromise("SELECT * FROM employees WHERE role_id=?", roleID))
+                    .map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee }));
+                return choices.length > 0 ? choices : [{ name: "This role doesn't have any employees.\n  Press enter to go back to the main menu.", value: false, short: "No Employees" }];
+            },
+            // Skip this question if role_id is 0 because that means there aren't any roles or employees in the selected department
+            when: roleID
+        })).employee;
+    } catch (err) { console.error(err); }
 }
 
 // End the database connection and quit the app by not calling mainMenu()
