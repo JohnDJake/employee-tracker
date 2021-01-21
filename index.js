@@ -38,6 +38,7 @@ function mainMenu() {
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
             { name: "Update an employee's role", value: updateEmployeeRole },
+            { name: "Update an employee's manager", value: updateEmployeeManager },
             { name: "Quit", value: quit }
         ]
     }).then(({ action }) => action());
@@ -169,6 +170,33 @@ async function updateEmployeeRole() {
                 // Update the employee in the database
                 await connection.queryPromise("UPDATE employees SET role_id=? WHERE employee_id=?", [role.role_id, employee.employee_id]);
                 console.log(`Successfully moved ${employee.first_name} ${employee.last_name} to ${role.title}`);
+            }
+        }
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// Update employee manager
+async function updateEmployeeManager() {
+    try {
+        // Choose a role to update an employee in
+        // Choosing a role here instead of letting the chooseEmployee function do it lets us refer back to the department id
+        const { role } = await chooseRole("update an employee in");
+        // Only keep going if a role was selected
+        if (role) {
+            // Choose an employee in that role
+            const { employee } = await chooseEmployee("update an employee in", role.role_id);
+            if (employee) {
+                // Choose another employee in that department as the manager
+                const { manager_id } = await inquirer.prompt({
+                    type: "list",
+                    name: "manager_id",
+                    message: `Choose a manager for ${employee.first_name} ${employee.last_name}`,
+                    choices: async function () { return await managerChoices(role.department_id, employee.employee_id); }
+                });
+                // Update the employee in the database
+                await connection.queryPromise("UPDATE employees SET manager_id=? WHERE employee_id=?", [manager_id, employee.employee_id]);
+                console.log(`Successfully updated ${employee.first_name} ${employee.last_name}'s manager`);
             }
         }
     } catch (err) { console.error(err); }
