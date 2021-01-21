@@ -158,7 +158,7 @@ async function viewAllEmployees() {
 async function updateEmployeeRole() {
     try {
         // Choose an employee to update
-        const { employee } = await chooseEmployee("update an employee in", "update");
+        const { employee } = await chooseEmployee("update an employee in");
         // Only keep going if an employee was selected
         if (employee) {
             // Select a role to move the employee to
@@ -188,10 +188,10 @@ async function chooseDepartment(actionClause) {
 }
 
 // Choose a role by department
-async function chooseRole(actionClause) {
+async function chooseRole(actionClause, department_id_param) {
     try {
         // Choose a department
-        const { department: { department_id } } = (await chooseDepartment(actionClause));
+        const department_id = department_id_param || (await chooseDepartment(actionClause)).department.department_id;
         return inquirer.prompt({
             // Retrieve the roles in the selected department and have the user choose one
             type: "list",
@@ -199,7 +199,7 @@ async function chooseRole(actionClause) {
             message: `Choose a role in that department to ${actionClause}`,
             // If the department doesn't have any roles, return false
             choices: async function () {
-                const choices = (await connection.queryPromise("SELECT role_id, title, department_id FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
+                const choices = (await connection.queryPromise("SELECT * FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
                 return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
             }
         });
@@ -208,15 +208,15 @@ async function chooseRole(actionClause) {
 
 // Choose an employee by department and role
 // Returns an employee to be used by modify and delete functions
-async function chooseEmployee(actionClause, action) {
+async function chooseEmployee(actionClause, role_id_param) {
     try {
         // Choose a department and a role
-        const { role: { role_id } } = (await chooseRole(actionClause));
+        const role_id = role_id_param || (await chooseRole(actionClause)).role.ro;
         return inquirer.prompt({
             // Retrieve the list of employees working in the selected role and have the user choose one
             type: "list",
             name: "employee",
-            message: `Choose an employee in that role to ${action}`,
+            message: `Choose an employee in that role to ${actionClause.split(" ")[0]}`,
             // If the role doesn't have any employees, return false
             choices: async function () {
                 const choices = (await connection.queryPromise("SELECT * FROM employees WHERE role_id=?", role_id))
@@ -231,13 +231,15 @@ async function chooseEmployee(actionClause, action) {
 
 // Generate an array of manager choices
 async function managerChoices(department_id, employee_id) {
-    const choices = (await connection.queryPromise(`
-        SELECT employees.first_name, employees.last_name, employees.employee_id
-        FROM employees JOIN roles on employees.role_id=roles.role_id
-        WHERE roles.department_id=? AND employees.employee_id!=?`,
-        [department_id, employee_id || 0])).map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.employee_id }));
-    choices.push({ name: "None", value: null });
-    return choices;
+    try {
+        const choices = (await connection.queryPromise(`
+            SELECT employees.first_name, employees.last_name, employees.employee_id
+            FROM employees JOIN roles on employees.role_id=roles.role_id
+            WHERE roles.department_id=? AND employees.employee_id!=?`,
+            [department_id, employee_id || 0])).map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.employee_id }));
+        choices.push({ name: "None", value: null });
+        return choices;
+    } catch (err) { console.error(err); }
 }
 
 // End the database connection and quit the app by not calling mainMenu()
