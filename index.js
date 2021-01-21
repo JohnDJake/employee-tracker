@@ -114,15 +114,7 @@ async function addEmployee() {
                 type: "list",
                 name: "manager_id",
                 message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
-                choices: async function () {
-                    const choices = (await connection.queryPromise(`
-                        SELECT employees.first_name, employees.last_name, employees.employee_id
-                        FROM employees JOIN roles on employees.role_id=roles.role_id
-                        WHERE roles.department_id=?`,
-                        department_id)).map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.employee_id }));
-                    choices.push({ name: "None", value: null });
-                    return choices;
-                }
+                choices: async function () { return await managerChoices(department_id, null); }
             }]);
             // Add the new employee to the database
             await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
@@ -235,6 +227,17 @@ async function chooseEmployee(actionClause, action) {
             when: role_id
         });
     } catch (err) { console.error(err); }
+}
+
+// Generate an array of manager choices
+async function managerChoices(department_id, employee_id) {
+    const choices = (await connection.queryPromise(`
+        SELECT employees.first_name, employees.last_name, employees.employee_id
+        FROM employees JOIN roles on employees.role_id=roles.role_id
+        WHERE roles.department_id=? AND employees.employee_id!=?`,
+        [department_id, employee_id || 0])).map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee.employee_id }));
+    choices.push({ name: "None", value: null });
+    return choices;
 }
 
 // End the database connection and quit the app by not calling mainMenu()
