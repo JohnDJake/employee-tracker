@@ -33,6 +33,7 @@ function mainMenu() {
         choices: [
             { name: "Add a department", value: addDepartment },
             { name: "Add a role", value: addRole },
+            { name: "Add an employee", value: addEmployee },
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
@@ -80,7 +81,41 @@ async function addRole() {
             validate: input => input === "" || isNaN(input) ? "Please enter the salary as a number" : true
         }]);
         await connection.queryPromise("INSERT INTO roles SET ?", await newRole);
-        console.log("The role was succesfully added!");
+        console.log("The role was successfully added!");
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+async function addEmployee() {
+    try {
+        const newEmployee = inquirer.prompt([{
+            type: "list",
+            name: "department_id",
+            message: "Choose a department to add an employee to",
+            choices: (await connection.queryPromise("SELECT * FROM departments")).map(dept => ({ name: dept.name, value: dept.department_id }))
+        }, {
+            type: "list",
+            name: "role_id",
+            message: "Choose a role in that department to add an employee to",
+            choices: async function (answers) {
+                const choices = (await connection.queryPromise("SELECT role_id, title FROM roles WHERE ?", answers)).map(role => ({ name: role.title, value: role.role_id }));
+                return choices.length > 0 ? choices : [{ name: "Please add a role to this department before adding an employee.\n  Press enter to go back to the main menu.", value: 0, short: "Create a role" }];
+            }
+        }, {
+            type: "input",
+            name: "first_name",
+            message: "What is the new employee's first name?",
+            when: ({ role_id }) => role_id
+        }, {
+            type: "input",
+            name: "last_name",
+            message: "What is the new employee's last name?",
+            when: ({ role_id }) => role_id
+        }]);
+        if ((await newEmployee).role_id) {
+            await connection.queryPromise("INSERT INTO employees SET ?", (({ department_id, ...newEmployee }) => newEmployee)(await newEmployee));
+            console.log("The employee was successfully added!");
+        }
     } catch (err) { console.error(err); }
     mainMenu();
 }
