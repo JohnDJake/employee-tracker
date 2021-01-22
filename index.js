@@ -313,6 +313,7 @@ async function updateEmployeeRole() {
     try {
         // Choose an employee to update
         const { employee } = await chooseEmployee("change an employee in");
+        if (!employee.employee_id) throw "No employee was selected";
         // Only keep going if an employee was selected
         if (employee) {
             // Select a role to move the employee to
@@ -335,22 +336,20 @@ async function updateEmployeeManager() {
         // Choosing a role here instead of letting the chooseEmployee function do it lets us refer back to the department id
         const { role } = await chooseRole("change an employee in");
         // Only keep going if a role was selected
-        if (role) {
-            // Choose an employee in that role
-            const { employee } = await chooseEmployee("change an employee in", role.role_id);
-            if (employee) {
-                // Choose another employee in that department as the manager
-                const { manager_id } = await inquirer.prompt({
-                    type: "list",
-                    name: "manager_id",
-                    message: `Choose a manager for ${employee.first_name} ${employee.last_name}`,
-                    choices: async function () { return await getEmployeesByDepartment(role.department_id, employee.employee_id); }
-                });
-                // Update the employee in the database
-                await connection.queryPromise("UPDATE employees SET manager_id=? WHERE employee_id=?", [manager_id, employee.employee_id]);
-                console.log(`Successfully changed ${employee.first_name} ${employee.last_name}'s manager`);
-            }
-        }
+        if (!role.role_id) throw "No role was selected";
+        // Choose an employee in that role
+        const { employee } = await chooseEmployee("change an employee in", role.role_id);
+        if (!employee.employee_id) throw "No employee was selected";
+        // Choose another employee in that department as the manager
+        const { manager_id } = await inquirer.prompt({
+            type: "list",
+            name: "manager_id",
+            message: `Choose a manager for ${employee.first_name} ${employee.last_name}`,
+            choices: async function () { return await getEmployeesByDepartment(role.department_id, employee.employee_id); }
+        });
+        // Update the employee in the database
+        await connection.queryPromise("UPDATE employees SET manager_id=? WHERE employee_id=?", [manager_id, employee.employee_id]);
+        console.log(`Successfully changed ${employee.first_name} ${employee.last_name}'s manager`);
     } catch (err) { console.error(err); }
     updateMenu();
 }
