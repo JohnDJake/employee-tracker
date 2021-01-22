@@ -64,6 +64,7 @@ function readMenu() {
         choices: [
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
+            { name: "View roles by department", value: viewRolesByDepartment },
             { name: "View all employees", value: viewAllEmployees },
             { name: "View employees by manager", value: viewEmployeesByManager },
             { name: "View department budget utilization", value: viewDepartmentBudget },
@@ -196,6 +197,17 @@ async function viewAllRoles() {
             SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department
             FROM roles JOIN departments ON roles.department_id=departments.department_id
             ORDER BY departments.department_id`));
+    } catch (err) { console.error(err); }
+    readMenu();
+}
+
+// View roles by department
+async function viewRolesByDepartment() {
+    try {
+        const department_id = (await chooseDepartment("view roles in")).department.department_id;
+        const roles = await connection.queryPromise("SELECT role_id AS ID, title AS Title, salary AS Salary FROM roles WHERE department_id=?", department_id);
+        if (roles.length === 0) console.log("This department doesn't have any roles yet\n");
+        else console.table(roles);
     } catch (err) { console.error(err); }
     readMenu();
 }
