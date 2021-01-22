@@ -78,8 +78,8 @@ function updateMenu() {
         name: "action",
         message: "What would you like to change?",
         choices: [
-            { name: "Update an employee's role", value: updateEmployeeRole },
-            { name: "Update an employee's manager", value: updateEmployeeManager },
+            { name: "Change an employee's role", value: updateEmployeeRole },
+            { name: "Change an employee's manager", value: updateEmployeeManager },
             { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
@@ -92,7 +92,7 @@ function deleteMenu() {
         name: "action",
         message: "What would you like to remove?",
         choices: [
-            { name: "Delete an employee", value: deleteEmployee },
+            { name: "Remove an employee", value: deleteEmployee },
             { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
@@ -235,7 +235,7 @@ async function viewEmployeesByManager() {
 async function updateEmployeeRole() {
     try {
         // Choose an employee to update
-        const { employee } = await chooseEmployee("update an employee in");
+        const { employee } = await chooseEmployee("change an employee in");
         // Only keep going if an employee was selected
         if (employee) {
             // Select a role to move the employee to
@@ -256,11 +256,11 @@ async function updateEmployeeManager() {
     try {
         // Choose a role to update an employee in
         // Choosing a role here instead of letting the chooseEmployee function do it lets us refer back to the department id
-        const { role } = await chooseRole("update an employee in");
+        const { role } = await chooseRole("change an employee in");
         // Only keep going if a role was selected
         if (role) {
             // Choose an employee in that role
-            const { employee } = await chooseEmployee("update an employee in", role.role_id);
+            const { employee } = await chooseEmployee("change an employee in", role.role_id);
             if (employee) {
                 // Choose another employee in that department as the manager
                 const { manager_id } = await inquirer.prompt({
@@ -271,7 +271,7 @@ async function updateEmployeeManager() {
                 });
                 // Update the employee in the database
                 await connection.queryPromise("UPDATE employees SET manager_id=? WHERE employee_id=?", [manager_id, employee.employee_id]);
-                console.log(`Successfully updated ${employee.first_name} ${employee.last_name}'s manager`);
+                console.log(`Successfully changed ${employee.first_name} ${employee.last_name}'s manager`);
             }
         }
     } catch (err) { console.error(err); }
@@ -282,20 +282,20 @@ async function updateEmployeeManager() {
 async function deleteEmployee() {
     try {
         // Have the user select an employee
-        const { employee } = (await chooseEmployee("delete an employee from"));
+        const { employee } = (await chooseEmployee("remove an employee from"));
         // Ask for confirmation
         const { confirm } = await inquirer.prompt({
             type: "confirm",
             name: "confirm",
-            message: `Are you sure you want to permanently delete ${employee.first_name} ${employee.last_name} (ID: ${employee.employee_id})?`
+            message: `Are you sure you want to permanently remove ${employee.first_name} ${employee.last_name} (ID: ${employee.employee_id}) from the database?`
         });
         if (confirm) {
             // If the selected employee manages any employees, set their manager to null
             await connection.queryPromise("UPDATE employees SET manager_id=NULL WHERE manager_id=?", employee.employee_id);
             // Delete the selected employee
             await connection.queryPromise("DELETE FROM employees WHERE employee_id=?", employee.employee_id);
-            console.log(`Successfully deleted ${employee.first_name} ${employee.last_name}`);
-        } else { console.log("Nothing was deleted"); }
+            console.log(`Successfully removed ${employee.first_name} ${employee.last_name}`);
+        } else { console.log("Nothing was removed"); }
     } catch (err) { console.error(err); }
     mainMenu();
 }
