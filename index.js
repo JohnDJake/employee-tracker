@@ -47,9 +47,9 @@ function createMenu() {
         name: "action",
         message: "What would you like to add?",
         choices: [
-            { name: "Add a department", value: addDepartment },
-            { name: "Add a role", value: addRole },
-            { name: "Add an employee", value: addEmployee },
+            { name: "Add a department", value: createDepartment },
+            { name: "Add a role", value: createRole },
+            { name: "Add an employee", value: createEmployee },
             { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
@@ -102,7 +102,7 @@ function deleteMenu() {
 }
 
 // Add a department
-async function addDepartment() {
+async function createDepartment() {
     try {
         // Generate an array of department name strings to prevent making duplicate departments
         const departments = (await connection.queryPromise("SELECT name FROM departments")).map(row => row.name);
@@ -118,11 +118,11 @@ async function addDepartment() {
         await connection.queryPromise("INSERT INTO departments SET ?", newDepartment);
         console.log("The department was successfully added!");
     } catch (err) { console.error(err); }
-    mainMenu();
+    createMenu();
 }
 
 // Add a role to a department
-async function addRole() {
+async function createRole() {
     try {
         // Choose a department
         const { department: { department_id, name } } = await chooseDepartment("add a role to");
@@ -148,11 +148,11 @@ async function addRole() {
         await connection.queryPromise("INSERT INTO roles SET ?", { ...newRole, department_id: department_id });
         console.log("The role was successfully added!");
     } catch (err) { console.error(err); }
-    mainMenu();
+    createMenu();
 }
 
 // Add an employee
-async function addEmployee() {
+async function createEmployee() {
     try {
         // Choose a department and a role
         const { role: { role_id, title, department_id } } = await chooseRole("add an employee to");
@@ -180,13 +180,13 @@ async function addEmployee() {
             console.log("The employee was successfully added!");
         }
     } catch (err) { console.error(err); }
-    mainMenu();
+    createMenu();
 }
 
 // View all departments
 async function viewAllDepartments() {
     try { console.table(await connection.queryPromise("SELECT * FROM departments")); } catch (err) { console.error(err); }
-    mainMenu();
+    readMenu();
 }
 
 // View all roles, sorted by department
@@ -197,7 +197,7 @@ async function viewAllRoles() {
             FROM roles JOIN departments ON roles.department_id=departments.department_id
             ORDER BY departments.department_id`));
     } catch (err) { console.error(err); }
-    mainMenu();
+    readMenu();
 }
 
 // View all employees, sorted by department then by role
@@ -210,7 +210,7 @@ async function viewAllEmployees() {
             LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
             ORDER BY departments.department_id, roles.role_id`));
     } catch (err) { console.error(err); }
-    mainMenu();
+    readMenu();
 }
 
 // Select a manager and then view all of their employees
@@ -231,7 +231,7 @@ async function viewEmployeesByManager() {
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
             WHERE employees.manager_id=?`, manager_id));
     } catch (err) { console.error(err); }
-    mainMenu();
+    readMenu();
 }
 
 // View the total utilized budget of a department
@@ -244,7 +244,7 @@ async function viewDepartmentBudget() {
             department.department_id);
         console.log(`$${budget}`);
     } catch (err) { console.error(err); }
-    mainMenu();
+    readMenu();
 }
 
 // Update employee role
@@ -264,7 +264,7 @@ async function updateEmployeeRole() {
             }
         }
     } catch (err) { console.error(err); }
-    mainMenu();
+    updateMenu();
 }
 
 // Update employee manager
@@ -291,7 +291,7 @@ async function updateEmployeeManager() {
             }
         }
     } catch (err) { console.error(err); }
-    mainMenu();
+    updateMenu();
 }
 
 // Delete a department
@@ -313,7 +313,7 @@ async function deleteDepartment() {
             } else { console.log("Nothing was removed"); }
         } else { console.log("That department still has roles, please remove them before removing this department"); }
     } catch (err) { console.error(err); }
-    mainMenu();
+    deleteMenu();
 }
 
 // Delete a role
@@ -335,7 +335,7 @@ async function deleteRole() {
             } else { console.log("Nothing was removed"); }
         } else { console.log("That role still has employees, please update or remove them before removing this role"); }
     } catch (err) { console.error(err); }
-    mainMenu();
+    deleteMenu();
 }
 
 // Delete an employee
@@ -357,7 +357,7 @@ async function deleteEmployee() {
             console.log(`Successfully removed ${employee.first_name} ${employee.last_name}`);
         } else { console.log("Nothing was removed"); }
     } catch (err) { console.error(err); }
-    mainMenu();
+    deleteMenu();
 }
 
 // Choose a department
