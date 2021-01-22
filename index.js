@@ -33,8 +33,8 @@ function mainMenu() {
         choices: [
             { name: "Add something", value: createMenu },
             { name: "View something", value: readMenu },
-            { name: "Update something", value: updateMenu },
-            { name: "Delete something", value: deleteMenu },
+            { name: "Change something", value: updateMenu },
+            { name: "Remove something", value: deleteMenu },
             { name: "Quit", value: quit }
         ]
     }).then(({ action }) => action());
@@ -76,7 +76,7 @@ function updateMenu() {
     inquirer.prompt({
         type: "list",
         name: "action",
-        message: "What would you like to update?",
+        message: "What would you like to change?",
         choices: [
             { name: "Update an employee's role", value: updateEmployeeRole },
             { name: "Update an employee's manager", value: updateEmployeeManager },
@@ -90,7 +90,7 @@ function deleteMenu() {
     inquirer.prompt({
         type: "list",
         name: "action",
-        message: "What would you like to delete?",
+        message: "What would you like to remove?",
         choices: [
             { name: "Delete an employee", value: deleteEmployee },
             { name: "Go back", value: mainMenu }
