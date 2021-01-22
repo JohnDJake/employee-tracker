@@ -129,6 +129,7 @@ async function createRole() {
     try {
         // Choose a department
         const { department: { department_id, name } } = await chooseDepartment("add a role to");
+        if (!department_id) throw "There aren't any departments";
         const newRole = await inquirer.prompt([{
             // Have the user set a name for the new role
             type: "input",
@@ -160,28 +161,27 @@ async function createEmployee() {
         // Choose a department and a role
         const { role: { role_id, title, department_id } } = await chooseRole("add an employee to");
         // Don't add an employee if no role was selected
-        if (role_id) {
-            const newEmployee = await inquirer.prompt([{
-                // Ask for the new employee's first name
-                type: "input",
-                name: "first_name",
-                message: `What is the new ${title}'s first name?`
-            }, {
-                // Ask for the new employee's last name
-                type: "input",
-                name: "last_name",
-                message: ({ first_name }) => `What is ${first_name}'s last name?`
-            }, {
-                // Select a manager for that employee in the same department, or null for no manager
-                type: "list",
-                name: "manager_id",
-                message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
-                choices: async function () { return await getEmployeesByDepartment(department_id, null); }
-            }]);
-            // Add the new employee to the database
-            await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
-            console.log("The employee was successfully added!");
-        }
+        if (!role_id) throw "There aren't any roles in the selected department";
+        const newEmployee = await inquirer.prompt([{
+            // Ask for the new employee's first name
+            type: "input",
+            name: "first_name",
+            message: `What is the new ${title}'s first name?`
+        }, {
+            // Ask for the new employee's last name
+            type: "input",
+            name: "last_name",
+            message: ({ first_name }) => `What is ${first_name}'s last name?`
+        }, {
+            // Select a manager for that employee in the same department, or null for no manager
+            type: "list",
+            name: "manager_id",
+            message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
+            choices: async function () { return await getEmployeesByDepartment(department_id, null); }
+        }]);
+        // Add the new employee to the database
+        await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
+        console.log("The employee was successfully added!");
     } catch (err) { console.error(err); }
     createMenu();
 }
@@ -463,7 +463,7 @@ async function chooseEmployee(actionClause, role_id_param) {
     try {
         // Choose a department and a role
         const role_id = role_id_param || (await chooseRole(actionClause)).role.role_id;
-        if (!role_id) return {employee: {employee_id: false}};
+        if (!role_id) return { employee: { employee_id: false } };
         return inquirer.prompt({
             // Retrieve the list of employees working in the selected role and have the user choose one
             type: "list",
