@@ -92,6 +92,7 @@ function deleteMenu() {
         name: "action",
         message: "What would you like to remove?",
         choices: [
+            { name: "Remove a role", value: deleteRole },
             { name: "Remove an employee", value: deleteEmployee },
             { name: "Go back", value: mainMenu }
         ]
@@ -278,11 +279,33 @@ async function updateEmployeeManager() {
     mainMenu();
 }
 
+// Delete a role
+async function deleteRole() {
+    try {
+        // Have the user select a role
+        const { role } = await chooseRole("remove a role from");
+        // Make sure the role doesn't have any employees
+        if ((await connection.queryPromise("SELECT * FROM employees WHERE role_id=?", role.role_id)).length === 0) {
+            // Ask for confirmation
+            const { confirm } = await inquirer.prompt({
+                type: "confirm",
+                name: "confirm",
+                message: `Are you sure you want to permanently remove the role ${role.title} (ID: ${role.role_id}) from the database?`
+            });
+            if (confirm) {
+                await connection.queryPromise("DELETE FROM roles WHERE role_id=?", role.role_id);
+                console.log(`Successfully removed the role ${role.title}`);
+            } else { console.log("Nothing was removed"); }
+        } else { console.log("That role still has employees, please update or remove them before removing this role"); }
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
 // Delete an employee
 async function deleteEmployee() {
     try {
         // Have the user select an employee
-        const { employee } = (await chooseEmployee("remove an employee from"));
+        const { employee } = await chooseEmployee("remove an employee from");
         // Ask for confirmation
         const { confirm } = await inquirer.prompt({
             type: "confirm",
