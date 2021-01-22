@@ -287,7 +287,7 @@ async function deleteEmployee() {
         const { confirm } = await inquirer.prompt({
             type: "confirm",
             name: "confirm",
-            message: `Are you sure you want to delete ${employee.first_name} ${employee.last_name} (ID: ${employee.employee_id})?`
+            message: `Are you sure you want to permanently delete ${employee.first_name} ${employee.last_name} (ID: ${employee.employee_id})?`
         });
         if (confirm) {
             // If the selected employee manages any employees, set their manager to null
