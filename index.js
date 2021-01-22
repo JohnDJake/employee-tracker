@@ -37,6 +37,7 @@ function mainMenu() {
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
+            { name: "View employees by manager", value: viewEmployeesByManager },
             { name: "Update an employee's role", value: updateEmployeeRole },
             { name: "Update an employee's manager", value: updateEmployeeManager },
             { name: "Quit", value: quit }
@@ -116,7 +117,7 @@ async function addEmployee() {
                 type: "list",
                 name: "manager_id",
                 message: ({ first_name, last_name }) => `Who is ${first_name} ${last_name}'s manager?`,
-                choices: async function () { return await managerChoices(department_id, null); }
+                choices: async function () { return await getEmployeesByDepartment(department_id, null); }
             }]);
             // Add the new employee to the database
             await connection.queryPromise("INSERT INTO employees SET ?", { ...newEmployee, role_id: role_id });
@@ -152,6 +153,27 @@ async function viewAllEmployees() {
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
             LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
             ORDER BY departments.department_id, roles.role_id`));
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// Select a manager and then view all of their employees
+async function viewEmployeesByManager() {
+    try {
+        const manager_id = (await inquirer.prompt({
+            type: "list",
+            name: "manager",
+            message: "Select a manager to view all of their employees",
+            choices: async function () {
+                const managers = await connection.queryPromise("SELECT managers.* FROM employees JOIN employees AS managers ON employees.manager_id=managers.employee_id GROUP BY managers.employee_id;");
+                return managers.map(manager => ({ name: `${manager.first_name} ${manager.last_name}`, value: manager }));
+            }
+        })).manager.employee_id;
+        console.table(await connection.queryPromise(`
+            SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
+            roles.title AS Title, departments.name AS Department, roles.salary AS Salary
+            FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
+            WHERE employees.manager_id=?`, manager_id));
     } catch (err) { console.error(err); }
     mainMenu();
 }
@@ -192,7 +214,7 @@ async function updateEmployeeManager() {
                     type: "list",
                     name: "manager_id",
                     message: `Choose a manager for ${employee.first_name} ${employee.last_name}`,
-                    choices: async function () { return await managerChoices(role.department_id, employee.employee_id); }
+                    choices: async function () { return await getEmployeesByDepartment(role.department_id, employee.employee_id); }
                 });
                 // Update the employee in the database
                 await connection.queryPromise("UPDATE employees SET manager_id=? WHERE employee_id=?", [manager_id, employee.employee_id]);
@@ -258,8 +280,8 @@ async function chooseEmployee(actionClause, role_id_param) {
     } catch (err) { console.error(err); }
 }
 
-// Generate an array of manager choices
-async function managerChoices(department_id, employee_id) {
+// Generate an array of employees
+async function getEmployeesByDepartment(department_id, employee_id) {
     try {
         const choices = (await connection.queryPromise(`
             SELECT employees.first_name, employees.last_name, employees.employee_id
