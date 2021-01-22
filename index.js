@@ -213,6 +213,7 @@ async function viewAllRoles() {
 async function viewRolesByDepartment() {
     try {
         const department_id = (await chooseDepartment("view roles in")).department.department_id;
+        if (!department_id) throw "There aren't any departments yet";
         const roles = await connection.queryPromise("SELECT role_id AS ID, title AS Title, salary AS Salary FROM roles WHERE department_id=?", department_id);
         if (roles.length === 0) console.log("This department doesn't have any roles yet\n");
         else console.table(roles);
@@ -239,6 +240,7 @@ async function viewAllEmployees() {
 async function viewEmployeesByDepartment() {
     try {
         const department_id = (await chooseDepartment("view employees in")).department.department_id;
+        if (!department_id) throw "There aren't any departments yet";
         const employees = await connection.queryPromise(`
             SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
             roles.title AS Title, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
@@ -256,6 +258,7 @@ async function viewEmployeesByRole() {
     try {
         // Have the user select a role
         const role_id = (await chooseRole("view employees in")).role.role_id;
+        if (!role_id) throw "There aren't any roles yet";
         // Get the employees with that role
         const employees = await connection.queryPromise(`
             SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
@@ -277,9 +280,11 @@ async function viewEmployeesByManager() {
             message: "Select a manager to view all of their employees",
             choices: async function () {
                 const managers = await connection.queryPromise("SELECT managers.* FROM employees JOIN employees AS managers ON employees.manager_id=managers.employee_id GROUP BY managers.employee_id;");
-                return managers.map(manager => ({ name: `${manager.first_name} ${manager.last_name}`, value: manager }));
+                const choices = managers.map(manager => ({ name: `${manager.first_name} ${manager.last_name}`, value: manager }));
+                return choices.length > 0 ? choices : [{ name: "There aren't any employees with managers.\n  Press enter to go back to the menu.", value: false, short: "No Managers" }];
             }
         })).manager.employee_id;
+        if (!manager_id) throw "There aren't any managers yet";
         console.table(await connection.queryPromise(`
             SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
             roles.title AS Title, departments.name AS Department, roles.salary AS Salary
@@ -293,6 +298,7 @@ async function viewEmployeesByManager() {
 async function viewDepartmentBudget() {
     try {
         const { department } = await chooseDepartment("view the budget of");
+        if (!department.department_id) throw "There aren't any departments"
         console.log(`Total annual ${department.name} department budget utilized by salaries:`);
         const [{ budget }] = await connection.queryPromise(
             "SELECT SUM(roles.salary) AS budget FROM employees JOIN roles ON employees.role_id=roles.role_id WHERE roles.department_id=?",
@@ -423,7 +429,10 @@ async function chooseDepartment(actionClause) {
             type: "list",
             name: "department",
             message: `Choose a department to ${actionClause}`,
-            choices: (await connection.queryPromise("SELECT * FROM departments")).map(department => ({ name: department.name, value: department }))
+            choices: async function () {
+                const choices = (await connection.queryPromise("SELECT * FROM departments")).map(department => ({ name: department.name, value: department }));
+                return choices.length > 0 ? choices : [{ name: "There aren't any departments.\n  Press enter to go back to the menu.", value: false, short: "No Departments" }];
+            }
         });
     } catch (err) { console.error(err); }
 }
@@ -433,6 +442,7 @@ async function chooseRole(actionClause, department_id_param) {
     try {
         // Choose a department
         const department_id = department_id_param || (await chooseDepartment(actionClause)).department.department_id;
+        if (!department_id) return { role: { role_id: false } };
         return inquirer.prompt({
             // Retrieve the roles in the selected department and have the user choose one
             type: "list",
@@ -441,7 +451,7 @@ async function chooseRole(actionClause, department_id_param) {
             // If the department doesn't have any roles, return false
             choices: async function () {
                 const choices = (await connection.queryPromise("SELECT * FROM roles WHERE department_id=?", department_id)).map(role => ({ name: role.title, value: role }));
-                return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles.\n  Press enter to go back to the main menu.", value: false, short: "No Roles" }];
+                return choices.length > 0 ? choices : [{ name: "This department doesn't have any roles.\n  Press enter to go back to the menu.", value: false, short: "No Roles" }];
             }
         });
     } catch (err) { console.error(err); }
@@ -453,6 +463,7 @@ async function chooseEmployee(actionClause, role_id_param) {
     try {
         // Choose a department and a role
         const role_id = role_id_param || (await chooseRole(actionClause)).role.role_id;
+        if (!role_id) return {employee: {employee_id: false}};
         return inquirer.prompt({
             // Retrieve the list of employees working in the selected role and have the user choose one
             type: "list",
@@ -462,7 +473,7 @@ async function chooseEmployee(actionClause, role_id_param) {
             choices: async function () {
                 const choices = (await connection.queryPromise("SELECT * FROM employees WHERE role_id=?", role_id))
                     .map(employee => ({ name: `${employee.first_name} ${employee.last_name}`, value: employee }));
-                return choices.length > 0 ? choices : [{ name: "This role doesn't have any employees.\n  Press enter to go back to the main menu.", value: false, short: "No Employees" }];
+                return choices.length > 0 ? choices : [{ name: "This role doesn't have any employees.\n  Press enter to go back to the menu.", value: false, short: "No Employees" }];
             },
             // Skip this question if role_id is false because that means there aren't any roles or employees in the selected department
             when: role_id
