@@ -66,6 +66,7 @@ function readMenu() {
             { name: "View all roles", value: viewAllRoles },
             { name: "View roles by department", value: viewRolesByDepartment },
             { name: "View all employees", value: viewAllEmployees },
+            { name: "View employees by department", value: viewEmployeesByDepartment },
             { name: "View employees by manager", value: viewEmployeesByManager },
             { name: "View department budget utilization", value: viewDepartmentBudget },
             { name: "Go back", value: mainMenu }
@@ -221,6 +222,22 @@ async function viewAllEmployees() {
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
             LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
             ORDER BY departments.department_id, roles.role_id`));
+    } catch (err) { console.error(err); }
+    readMenu();
+}
+
+// View employees by department
+async function viewEmployeesByDepartment() {
+    try {
+        const department_id = (await chooseDepartment("view employees in")).department.department_id;
+        const employees = await connection.queryPromise(`
+            SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
+            roles.title AS Title, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
+            FROM employees JOIN roles ON employees.role_id=roles.role_id
+            LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
+            WHERE roles.department_id=? ORDER BY roles.role_id`, department_id);
+        if (employees.length === 0) console.log("This department doesn't have any employees yet\n");
+        else console.table(employees);
     } catch (err) { console.error(err); }
     readMenu();
 }
