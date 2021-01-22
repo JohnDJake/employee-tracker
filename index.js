@@ -92,6 +92,7 @@ function deleteMenu() {
         name: "action",
         message: "What would you like to remove?",
         choices: [
+            { name: "Remove a department", value: deleteDepartment },
             { name: "Remove a role", value: deleteRole },
             { name: "Remove an employee", value: deleteEmployee },
             { name: "Go back", value: mainMenu }
@@ -275,6 +276,28 @@ async function updateEmployeeManager() {
                 console.log(`Successfully changed ${employee.first_name} ${employee.last_name}'s manager`);
             }
         }
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// Delete a department
+async function deleteDepartment() {
+    try {
+        // Have the user select a department
+        const { department } = await chooseDepartment("remove");
+        // Make sure the role doesn't have any employees
+        if ((await connection.queryPromise("SELECT * FROM roles WHERE department_id=?", department.department_id)).length === 0) {
+            // Ask for confirmation
+            const { confirm } = await inquirer.prompt({
+                type: "confirm",
+                name: "confirm",
+                message: `Are you sure you want to permanently remove the department ${department.name} (ID: ${department.department_id}) from the database?`
+            });
+            if (confirm) {
+                await connection.queryPromise("DELETE FROM departments WHERE department_id=?", department.department_id);
+                console.log(`Successfully removed the department ${department.name}`);
+            } else { console.log("Nothing was removed"); }
+        } else { console.log("That department still has roles, please remove them before removing this department"); }
     } catch (err) { console.error(err); }
     mainMenu();
 }
