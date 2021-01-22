@@ -33,6 +33,10 @@ Finally, create a file called `.env` with the connection information for your My
 
 Run `npm start` from the application directory. Select what you'd like to do from the menu and follow the prompts.
 
+![Demo gif](assets/demo.gif)
+
+Check out my [full demo video](https://drive.google.com/file/d/1o4s7fFWLFn5zYHQLLDRyrpVLFeCTrQNu/view?usp=sharing)!
+
 
 
 ## Contributing
