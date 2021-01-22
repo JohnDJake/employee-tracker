@@ -359,6 +359,7 @@ async function deleteDepartment() {
     try {
         // Have the user select a department
         const { department } = await chooseDepartment("remove");
+        if (!department.department_id) throw "There aren't any departments";
         // Make sure the role doesn't have any employees
         if ((await connection.queryPromise("SELECT * FROM roles WHERE department_id=?", department.department_id)).length === 0) {
             // Ask for confirmation
@@ -381,6 +382,7 @@ async function deleteRole() {
     try {
         // Have the user select a role
         const { role } = await chooseRole("remove a role from");
+        if (!role.role_id) throw "No role selected";
         // Make sure the role doesn't have any employees
         if ((await connection.queryPromise("SELECT * FROM employees WHERE role_id=?", role.role_id)).length === 0) {
             // Ask for confirmation
@@ -403,6 +405,7 @@ async function deleteEmployee() {
     try {
         // Have the user select an employee
         const { employee } = await chooseEmployee("remove an employee from");
+        if (!employee.employee_id) throw "No employee selected";
         // Ask for confirmation
         const { confirm } = await inquirer.prompt({
             type: "confirm",
