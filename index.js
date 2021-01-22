@@ -66,6 +66,7 @@ function readMenu() {
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
             { name: "View employees by manager", value: viewEmployeesByManager },
+            { name: "View department budget utilization", value: viewDepartmentBudget },
             { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
@@ -229,6 +230,19 @@ async function viewEmployeesByManager() {
             roles.title AS Title, departments.name AS Department, roles.salary AS Salary
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
             WHERE employees.manager_id=?`, manager_id));
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// View the total utilized budget of a department
+async function viewDepartmentBudget() {
+    try {
+        const { department } = await chooseDepartment("view the budget of");
+        console.log(`Total annual ${department.name} department budget utilized by salaries:`);
+        const [{ budget }] = await connection.queryPromise(
+            "SELECT SUM(roles.salary) AS budget FROM employees JOIN roles ON employees.role_id=roles.role_id WHERE roles.department_id=?",
+            department.department_id);
+        console.log(`$${budget}`);
     } catch (err) { console.error(err); }
     mainMenu();
 }
