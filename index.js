@@ -187,17 +187,23 @@ async function createEmployee() {
 
 // View all departments
 async function viewAllDepartments() {
-    try { console.table(await connection.queryPromise("SELECT * FROM departments")); } catch (err) { console.error(err); }
+    try {
+        const departments = await connection.queryPromise("SELECT * FROM departments");
+        if (departments.length === 0) console.log("There aren't any departments yet\n");
+        else console.table(departments);
+    } catch (err) { console.error(err); }
     readMenu();
 }
 
 // View all roles, sorted by department
 async function viewAllRoles() {
     try {
-        console.table(await connection.queryPromise(`
+        const roles = await connection.queryPromise(`
             SELECT roles.role_id AS ID, roles.title AS Title, roles.salary AS Salary, departments.name AS Department
             FROM roles JOIN departments ON roles.department_id=departments.department_id
-            ORDER BY departments.department_id`));
+            ORDER BY departments.department_id`);
+        if (roles.length === 0) console.log("There aren't any roles yet\n");
+        else console.table(roles);
     } catch (err) { console.error(err); }
     readMenu();
 }
@@ -216,12 +222,14 @@ async function viewRolesByDepartment() {
 // View all employees, sorted by department then by role
 async function viewAllEmployees() {
     try {
-        console.table(await connection.queryPromise(`
+        const employees = await connection.queryPromise(`
             SELECT employees.employee_id AS ID, employees.first_name AS 'First Name', employees.last_name AS 'Last Name',
             roles.title AS Title, departments.name AS Department, roles.salary AS Salary, CONCAT_WS(' ', managers.first_name, managers.last_name) AS Manager
             FROM employees JOIN roles ON employees.role_id=roles.role_id JOIN departments ON roles.department_id=departments.department_id
             LEFT JOIN employees AS managers on employees.manager_id=managers.employee_id
-            ORDER BY departments.department_id, roles.role_id`));
+            ORDER BY departments.department_id, roles.role_id`);
+        if (employees.length === 0) console.log("There aren't any employees yet\n");
+        else console.table(employees);
     } catch (err) { console.error(err); }
     readMenu();
 }
