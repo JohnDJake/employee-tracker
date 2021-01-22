@@ -92,6 +92,7 @@ function deleteMenu() {
         name: "action",
         message: "What would you like to delete?",
         choices: [
+            { name: "Delete an employee", value: deleteEmployee },
             { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
@@ -273,6 +274,28 @@ async function updateEmployeeManager() {
                 console.log(`Successfully updated ${employee.first_name} ${employee.last_name}'s manager`);
             }
         }
+    } catch (err) { console.error(err); }
+    mainMenu();
+}
+
+// Delete an employee
+async function deleteEmployee() {
+    try {
+        // Have the user select an employee
+        const { employee } = (await chooseEmployee("delete an employee from"));
+        // Ask for confirmation
+        const { confirm } = await inquirer.prompt({
+            type: "confirm",
+            name: "confirm",
+            message: `Are you sure you want to delete ${employee.first_name} ${employee.last_name} (ID: ${employee.employee_id})?`
+        });
+        if (confirm) {
+            // If the selected employee manages any employees, set their manager to null
+            await connection.queryPromise("UPDATE employees SET manager_id=NULL WHERE manager_id=?", employee.employee_id);
+            // Delete the selected employee
+            await connection.queryPromise("DELETE FROM employees WHERE employee_id=?", employee.employee_id);
+            console.log(`Successfully deleted ${employee.first_name} ${employee.last_name}`);
+        } else { console.log("Nothing was deleted"); }
     } catch (err) { console.error(err); }
     mainMenu();
 }
