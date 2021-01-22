@@ -31,16 +31,68 @@ function mainMenu() {
         name: "action",
         message: "What would you like to do?",
         choices: [
+            { name: "Add something", value: createMenu },
+            { name: "View something", value: readMenu },
+            { name: "Update something", value: updateMenu },
+            { name: "Delete something", value: deleteMenu },
+            { name: "Quit", value: quit }
+        ]
+    }).then(({ action }) => action());
+}
+
+// Display the create menu
+function createMenu() {
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to add?",
+        choices: [
             { name: "Add a department", value: addDepartment },
             { name: "Add a role", value: addRole },
             { name: "Add an employee", value: addEmployee },
+            { name: "Go back", value: mainMenu }
+        ]
+    }).then(({ action }) => action());
+}
+
+// Display the read menu
+function readMenu() {
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to view?",
+        choices: [
             { name: "View all departments", value: viewAllDepartments },
             { name: "View all roles", value: viewAllRoles },
             { name: "View all employees", value: viewAllEmployees },
             { name: "View employees by manager", value: viewEmployeesByManager },
+            { name: "Go back", value: mainMenu }
+        ]
+    }).then(({ action }) => action());
+}
+
+// Display the update menu
+function updateMenu() {
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to update?",
+        choices: [
             { name: "Update an employee's role", value: updateEmployeeRole },
             { name: "Update an employee's manager", value: updateEmployeeManager },
-            { name: "Quit", value: quit }
+            { name: "Go back", value: mainMenu }
+        ]
+    }).then(({ action }) => action());
+}
+
+// Display the delete menu
+function deleteMenu() {
+    inquirer.prompt({
+        type: "list",
+        name: "action",
+        message: "What would you like to delete?",
+        choices: [
+            { name: "Go back", value: mainMenu }
         ]
     }).then(({ action }) => action());
 }
